@@ -1,5 +1,7 @@
 package com.example.atlimer;
 
+import com.example.atlimer.BtManager;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.widget.Button;
