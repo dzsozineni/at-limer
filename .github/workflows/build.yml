@@ -2,7 +2,6 @@ name: Build At-Limer APK
 
 on:
   workflow_dispatch:
-  push:
 
 jobs:
   build:
@@ -17,8 +16,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant execute permission
-        run: chmod +x gradlew
+      # 🔑 EZ A TRÜKK: wrapper generálás
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.4
 
       - name: Build APK
         run: ./gradlew assembleDebug
