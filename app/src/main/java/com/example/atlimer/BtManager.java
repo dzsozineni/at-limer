@@ -24,14 +24,16 @@ public class BtManager {
 
     // ========================
 
-    static BluetoothSocket socket;
-    static OutputStream out;
+    private static BluetoothSocket socket;
+    private static OutputStream out;
 
-    static Thread heartbeatThread;
-    static boolean heartbeatRunning = false;
+    private static Thread heartbeatThread;
+    private static boolean heartbeatRunning = false;
 
-    static UUID SPP =
+    private static final UUID SPP =
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    // ===== CONNECTION =====
 
     public static void connect(BluetoothDevice device) {
         try {
@@ -39,13 +41,21 @@ public class BtManager {
             socket.connect();
             out = socket.getOutputStream();
         } catch (Exception e) {
+            socket = null;
+            out = null;
             e.printStackTrace();
         }
     }
 
+    public static boolean isConnected() {
+        return socket != null && socket.isConnected() && out != null;
+    }
+
+    // ===== SEND =====
+
     public static void sendHex(String hex) {
         try {
-            if (out == null) return;
+            if (!isConnected()) return;
             byte[] data = hexStringToByteArray(hex);
             out.write(data);
         } catch (Exception e) {
@@ -56,11 +66,11 @@ public class BtManager {
     // ===== HEARTBEAT =====
 
     public static void startHeartbeat() {
-        if (heartbeatRunning) return;
+        if (heartbeatRunning || !isConnected()) return;
 
         heartbeatRunning = true;
         heartbeatThread = new Thread(() -> {
-            while (heartbeatRunning) {
+            while (heartbeatRunning && isConnected()) {
                 try {
                     sendHex(HEARTBEAT);
                     Thread.sleep(500);
@@ -78,9 +88,10 @@ public class BtManager {
 
     // ===== UTILS =====
 
-    static byte[] hexStringToByteArray(String s) {
+    private static byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
+
         for (int i = 0; i < len; i += 2) {
             data[i / 2] = (byte)
                     ((Character.digit(s.charAt(i), 16) << 4)
