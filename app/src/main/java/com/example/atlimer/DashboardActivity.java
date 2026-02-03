@@ -26,26 +26,38 @@ public class DashboardActivity extends Activity {
     }
 
     void toggleLock() {
-        locked = !locked;
+    locked = !locked;
 
-        if (locked) {
-            btnLock.setText("🔒 Locked");
-            Toast.makeText(this, "Scooter locked", Toast.LENGTH_SHORT).show();
-        } else {
-            btnLock.setText("🔓 Unlock");
-            Toast.makeText(this, "Scooter unlocked", Toast.LENGTH_SHORT).show();
-        }
+    if (locked) {
+        btnLock.setText("🔒 Locked");
+        BtManager.sendHex(BtManager.POWER_OFF);
+
+        // kis delay → lámpa OFF
+        btnLock.postDelayed(() ->
+                BtManager.sendHex(BtManager.LIGHT_OFF), 300);
+
+        Toast.makeText(this, "Scooter locked", Toast.LENGTH_SHORT).show();
+    } else {
+        btnLock.setText("🔓 Unlock");
+        BtManager.sendHex(BtManager.POWER_ON);
+
+        // kis delay → lámpa ON
+        btnLock.postDelayed(() ->
+                BtManager.sendHex(BtManager.LIGHT_ON), 300);
+
+        Toast.makeText(this, "Scooter unlocked", Toast.LENGTH_SHORT).show();
     }
+}
 
-    void toggleLight() {
-        lightOn = !lightOn;
+void toggleLight() {
+    lightOn = !lightOn;
 
-        if (lightOn) {
-            btnLight.setText("💡 Light OFF");
-            Toast.makeText(this, "Light ON", Toast.LENGTH_SHORT).show();
-        } else {
-            btnLight.setText("💡 Light ON");
-            Toast.makeText(this, "Light OFF", Toast.LENGTH_SHORT).show();
-        }
+    if (lightOn) {
+        btnLight.setText("💡 Light OFF");
+        BtManager.sendHex(BtManager.LIGHT_ON);
+    } else {
+        btnLight.setText("💡 Light ON");
+        BtManager.sendHex(BtManager.LIGHT_OFF);
     }
+}
 }
