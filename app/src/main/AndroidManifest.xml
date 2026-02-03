@@ -11,10 +11,11 @@
         android:allowBackup="true"
         android:label="At-Limer">
 
+        <!-- LAUNCHER / BT SCAN -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
-            
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -22,9 +23,17 @@
 
         </activity>
 
+        <!-- DASHBOARD -->
+        <activity
+            android:name=".DashboardActivity"
+            android:exported="false" />
+
+        <!-- BtService majd KÉSŐBB jön vissza -->
+        <!--
         <service
             android:name=".BtService"
             android:foregroundServiceType="connectedDevice"/>
+        -->
 
     </application>
 
