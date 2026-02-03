@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -16,6 +18,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // ⚠️ KELL UI MIUI-N
+        setContentView(R.layout.activity_main);
+
+        // ⏱️ kis késleltetés MIUI miatt
+        new Handler(Looper.getMainLooper()).postDelayed(this::flow, 300);
+    }
+
+    private void flow() {
         // Android 12+ permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -31,14 +41,12 @@ public class MainActivity extends Activity {
             }
         }
 
-        // 🔒 SEMMI BT, SEMMI heartbeat ITT
-        // Csak továbblépünk
         openDashboard();
     }
 
     private void openDashboard() {
         startActivity(new Intent(this, DashboardActivity.class));
-        // ⚠️ NEM hívunk finish()-t
+        finish();
     }
 
     @Override
