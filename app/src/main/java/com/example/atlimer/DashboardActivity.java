@@ -21,43 +21,60 @@ public class DashboardActivity extends Activity {
         btnLock = findViewById(R.id.btnLock);
         btnLight = findViewById(R.id.btnLight);
 
+        // Gombok események
         btnLock.setOnClickListener(v -> toggleLock());
         btnLight.setOnClickListener(v -> toggleLight());
+
+        // 💓 Heartbeat indul, ha dashboard megnyílik
+        BtManager.startHeartbeat();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 💓 Heartbeat leáll, ha kilépsz
+        BtManager.stopHeartbeat();
+    }
+
+    // ===== LOCK / UNLOCK =====
     void toggleLock() {
-    locked = !locked;
+        locked = !locked;
 
-    if (locked) {
-        btnLock.setText("🔒 Locked");
-        BtManager.sendHex(BtManager.POWER_OFF);
+        if (locked) {
+            btnLock.setText("🔒 Locked");
 
-        // kis delay → lámpa OFF
-        btnLock.postDelayed(() ->
-                BtManager.sendHex(BtManager.LIGHT_OFF), 300);
+            // POWER OFF
+            BtManager.sendHex(BtManager.POWER_OFF);
 
-        Toast.makeText(this, "Scooter locked", Toast.LENGTH_SHORT).show();
-    } else {
-        btnLock.setText("🔓 Unlock");
-        BtManager.sendHex(BtManager.POWER_ON);
+            // kis delay → LIGHT OFF
+            btnLock.postDelayed(() ->
+                    BtManager.sendHex(BtManager.LIGHT_OFF), 300);
 
-        // kis delay → lámpa ON
-        btnLock.postDelayed(() ->
-                BtManager.sendHex(BtManager.LIGHT_ON), 300);
+            Toast.makeText(this, "Scooter locked", Toast.LENGTH_SHORT).show();
+        } else {
+            btnLock.setText("🔓 Unlock");
 
-        Toast.makeText(this, "Scooter unlocked", Toast.LENGTH_SHORT).show();
+            // POWER ON
+            BtManager.sendHex(BtManager.POWER_ON);
+
+            // kis delay → LIGHT ON
+            btnLock.postDelayed(() ->
+                    BtManager.sendHex(BtManager.LIGHT_ON), 300);
+
+            Toast.makeText(this, "Scooter unlocked", Toast.LENGTH_SHORT).show();
+        }
     }
-}
 
-void toggleLight() {
-    lightOn = !lightOn;
+    // ===== LIGHT MANUAL TOGGLE =====
+    void toggleLight() {
+        lightOn = !lightOn;
 
-    if (lightOn) {
-        btnLight.setText("💡 Light OFF");
-        BtManager.sendHex(BtManager.LIGHT_ON);
-    } else {
-        btnLight.setText("💡 Light ON");
-        BtManager.sendHex(BtManager.LIGHT_OFF);
+        if (lightOn) {
+            btnLight.setText("💡 Light OFF");
+            BtManager.sendHex(BtManager.LIGHT_ON);
+        } else {
+            btnLight.setText("💡 Light ON");
+            BtManager.sendHex(BtManager.LIGHT_OFF);
+        }
     }
-}
 }
