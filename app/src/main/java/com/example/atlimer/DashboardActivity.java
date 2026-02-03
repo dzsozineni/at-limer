@@ -26,7 +26,14 @@ public class DashboardActivity extends Activity {
         btnLight.setOnClickListener(v -> toggleLight());
 
         // 💓 Heartbeat indul, ha dashboard megnyílik
-        BtManager.startHeartbeat();
+        if (BtManager.isConnected()) {
+    BtManager.startHeartbeat();
+} else {
+    Toast.makeText(this,
+            "No Bluetooth connection",
+            Toast.LENGTH_SHORT).show();
+}
+
     }
 
     @Override
