@@ -1,12 +1,26 @@
-plugins { id 'com.android.application' }
+plugins {
+    id "com.android.application"
+}
+
 android {
-    namespace 'com.example.atlimer'
+    namespace "com.example.atlimer"
     compileSdk 34
+
     defaultConfig {
-        applicationId 'com.example.atlimer'
+        applicationId "com.example.atlimer"
         minSdk 26
         targetSdk 34
         versionCode 1
-        versionName '1.0'
+        versionName "1.0"
     }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    // nincs extra dependency
 }
