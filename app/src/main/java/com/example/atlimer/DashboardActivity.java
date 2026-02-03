@@ -21,30 +21,37 @@ public class DashboardActivity extends Activity {
         btnLock = findViewById(R.id.btnLock);
         btnLight = findViewById(R.id.btnLight);
 
-        // Gombok események
+        // Gomb események
         btnLock.setOnClickListener(v -> toggleLock());
         btnLight.setOnClickListener(v -> toggleLight());
 
-        // 💓 Heartbeat indul, ha dashboard megnyílik
+        // 💓 Heartbeat csak akkor indul, ha van BT kapcsolat
         if (BtManager.isConnected()) {
-    BtManager.startHeartbeat();
-} else {
-    Toast.makeText(this,
-            "No Bluetooth connection",
-            Toast.LENGTH_SHORT).show();
-}
-
+            BtManager.startHeartbeat();
+        } else {
+            Toast.makeText(this,
+                    "Bluetooth not connected",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 💓 Heartbeat leáll, ha kilépsz
+        // 💓 Heartbeat mindig leáll kilépéskor
         BtManager.stopHeartbeat();
     }
 
     // ===== LOCK / UNLOCK =====
     void toggleLock() {
+
+        if (!BtManager.isConnected()) {
+            Toast.makeText(this,
+                    "Bluetooth not connected",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         locked = !locked;
 
         if (locked) {
@@ -57,7 +64,9 @@ public class DashboardActivity extends Activity {
             btnLock.postDelayed(() ->
                     BtManager.sendHex(BtManager.LIGHT_OFF), 300);
 
-            Toast.makeText(this, "Scooter locked", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Scooter locked",
+                    Toast.LENGTH_SHORT).show();
         } else {
             btnLock.setText("🔓 Unlock");
 
@@ -68,12 +77,22 @@ public class DashboardActivity extends Activity {
             btnLock.postDelayed(() ->
                     BtManager.sendHex(BtManager.LIGHT_ON), 300);
 
-            Toast.makeText(this, "Scooter unlocked", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Scooter unlocked",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
     // ===== LIGHT MANUAL TOGGLE =====
     void toggleLight() {
+
+        if (!BtManager.isConnected()) {
+            Toast.makeText(this,
+                    "Bluetooth not connected",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         lightOn = !lightOn;
 
         if (lightOn) {
