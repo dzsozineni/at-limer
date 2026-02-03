@@ -16,7 +16,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 🔐 Android 12+ Bluetooth permission
+        // Android 12+ permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
                     != PackageManager.PERMISSION_GRANTED ||
@@ -31,9 +31,14 @@ public class MainActivity extends Activity {
             }
         }
 
-        // Ha megvan az engedély → dashboard
+        // 🔒 SEMMI BT, SEMMI heartbeat ITT
+        // Csak továbblépünk
+        openDashboard();
+    }
+
+    private void openDashboard() {
         startActivity(new Intent(this, DashboardActivity.class));
-        finish();
+        // ⚠️ NEM hívunk finish()-t
     }
 
     @Override
@@ -48,13 +53,11 @@ public class MainActivity extends Activity {
             if (grantResults.length > 0 &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                startActivity(new Intent(this, DashboardActivity.class));
-                finish();
+                openDashboard();
             } else {
                 Toast.makeText(this,
                         "Bluetooth permission required",
                         Toast.LENGTH_LONG).show();
-                finish();
             }
         }
     }
