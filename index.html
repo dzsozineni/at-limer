@@ -135,12 +135,37 @@
             display: none;
         }
 
-        .scan-section {
-            display: block;
+        .connecting-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
 
-        .scan-section.hidden {
+        .connecting-overlay.hidden {
             display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top: 4px solid #7CFC00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* Install prompt */
@@ -167,19 +192,20 @@
 </head>
 <body>
     <div class="container">
+        <!-- Connecting Overlay -->
+        <div class="connecting-overlay" id="connectingOverlay">
+            <div class="spinner"></div>
+            <div style="font-size: 18px; color: #7CFC00; margin-bottom: 8px;">Connecting...</div>
+            <div style="font-size: 14px; color: #888;">Select your device from the browser prompt</div>
+        </div>
+
         <!-- Header -->
         <div class="header">
             <div class="title">AT-Limer</div>
             <div class="close-btn" id="closeBtn" onclick="disconnect()">✕</div>
         </div>
 
-        <div class="status" id="status">Idle</div>
-
-        <!-- Scan Section -->
-        <div class="scan-section" id="scanSection">
-            <button class="btn scan" onclick="startScan()">🔍 Scan</button>
-            <div class="device-list" id="deviceList"></div>
-        </div>
+        <div class="status" id="status">Connecting...</div>
 
         <!-- Dashboard -->
         <div class="dashboard" id="dashboard">
@@ -297,8 +323,35 @@
 
             } catch (err) {
                 console.error('Scan error:', err);
-                setStatus('Scan cancelled or failed');
+                
+                if (err.name === 'NotFoundError') {
+                    setStatus('No device selected');
+                } else if (err.name === 'NotSupportedError') {
+                    setStatus('⚠️ Web Bluetooth not supported. Use Bluefy on iOS or Chrome on Android.');
+                } else {
+                    setStatus('Scan cancelled or failed');
+                }
+                
+                // Show retry button
+                showRetryButton();
             }
+        }
+
+        // Show retry button if connection fails
+        function showRetryButton() {
+            document.getElementById('connectingOverlay').classList.add('hidden');
+            const dashboard = document.getElementById('dashboard');
+            dashboard.innerHTML = `
+                <button class="btn scan" onclick="startScan(); hideRetryButton();">
+                    🔄 Retry Connection
+                </button>
+            `;
+            dashboard.classList.add('visible');
+        }
+
+        function hideRetryButton() {
+            document.getElementById('connectingOverlay').classList.remove('hidden');
+            document.getElementById('dashboard').classList.remove('visible');
         }
 
         // Connect to device
@@ -389,14 +442,14 @@
 
         // Show dashboard
         function showDashboard() {
-            document.getElementById('scanSection').classList.add('hidden');
+            document.getElementById('connectingOverlay').classList.add('hidden');
             document.getElementById('dashboard').classList.add('visible');
             document.getElementById('closeBtn').classList.add('visible');
         }
 
         // Hide dashboard
         function hideDashboard() {
-            document.getElementById('scanSection').classList.remove('hidden');
+            document.getElementById('connectingOverlay').classList.remove('hidden');
             document.getElementById('dashboard').classList.remove('visible');
             document.getElementById('closeBtn').classList.remove('visible');
         }
@@ -483,6 +536,22 @@
         // Check Web Bluetooth support
         if (!navigator.bluetooth) {
             setStatus('⚠️ Web Bluetooth not supported. Use Chrome or Edge on Android, or Bluefy on iOS.');
+            document.getElementById('connectingOverlay').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                    <div style="font-size: 18px; color: #ff3b30; margin-bottom: 12px;">Web Bluetooth Not Supported</div>
+                    <div style="font-size: 14px; color: #888; line-height: 1.5;">
+                        Please use:<br>
+                        • <strong>Bluefy</strong> browser on iOS<br>
+                        • <strong>Chrome</strong> or <strong>Edge</strong> on Android
+                    </div>
+                </div>
+            `;
+        } else {
+            // Auto-start scan when page loads
+            setTimeout(() => {
+                startScan();
+            }, 500);
         }
 
         // Show install prompt after 3 seconds
