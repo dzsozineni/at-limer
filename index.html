@@ -44,6 +44,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 </div>
 </div>
 
+<button class="btn" id="lockBtn" onclick="toggleLock()">🔒 LOCKED</button>
+<button class="btn" id="lightBtn" onclick="toggleLight()">💡 LIGHT OFF</button>
+
 <div class="sectionTitle">Speed Modes</div>
 
 <button class="btn" onclick="setSpeed('eco')">ECO</button>
@@ -67,8 +70,11 @@ let device=null;
 let characteristic=null;
 let receiveBuffer=[];
 
-/* AKTUÁLIS SPEED LIMIT (km/h) */
-let maxSpeed = 22.7; // default induláskor
+let locked=true;
+let lightOn=false;
+
+/* aktuális speed limit km/h */
+let maxSpeed=22.7;
 
 function setStatus(msg){
 document.getElementById("status").textContent=msg;
@@ -81,6 +87,10 @@ document.getElementById("closeBtn").style.display="none";
 setStatus("Disconnected");
 document.getElementById("speedValue").textContent="0.0";
 document.getElementById("batteryValue").textContent="0";
+locked=true;
+lightOn=false;
+document.getElementById("lockBtn").textContent="🔒 LOCKED";
+document.getElementById("lightBtn").textContent="💡 LIGHT OFF";
 }
 
 function hexToBytes(hex){
@@ -111,8 +121,8 @@ const bytes=new Uint8Array(frame);
 const rawSpeed=bytes[8];
 const battery=bytes[19];
 
-/* FIRMWARE KÉPLET */
-const divisor = (Math.round(maxSpeed)===20)?119:172;
+/* firmware képlet */
+const divisor=(Math.round(maxSpeed)===20)?119:172;
 const speed=(rawSpeed * maxSpeed / divisor).toFixed(1);
 
 document.getElementById("speedValue").textContent=speed;
@@ -144,7 +154,7 @@ characteristic.addEventListener("characteristicvaluechanged",handleNotification)
 
 device.addEventListener("gattserverdisconnected",disconnect);
 
-/* induláskor 22.7 km/h mód küldése */
+/* induláskor 22.7 km/h */
 setSpeed('default');
 
 document.getElementById("overlay").style.display="none";
@@ -157,6 +167,36 @@ setStatus("Connected ✔");
 resetUI();
 }
 });
+
+/* ===== LOCK ===== */
+function toggleLock(){
+locked=!locked;
+const btn=document.getElementById("lockBtn");
+
+if(locked){
+btn.textContent="🔒 LOCKED";
+sendCommand("464316610001F0E2AE");
+sendCommand("464316120001F03B07");
+}else{
+btn.textContent="🔓 UNLOCKED";
+sendCommand("464316610001F1F28F");
+sendCommand("464316120001F12B26");
+}
+}
+
+/* ===== LIGHT ===== */
+function toggleLight(){
+lightOn=!lightOn;
+const btn=document.getElementById("lightBtn");
+
+if(lightOn){
+btn.textContent="💡 LIGHT ON";
+sendCommand("464316120001F12B26");
+}else{
+btn.textContent="💡 LIGHT OFF";
+sendCommand("464316120001F03B07");
+}
+}
 
 /* ===== SPEED MODES ===== */
 function setSpeed(mode){
@@ -171,7 +211,7 @@ unlock:{cmd:"464316110002023AD5",kmh:33.7}
 
 if(!modes[mode]) return;
 
-maxSpeed = modes[mode].kmh;
+maxSpeed=modes[mode].kmh;
 sendCommand(modes[mode].cmd);
 }
 
