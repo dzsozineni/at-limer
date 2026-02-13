@@ -4,14 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>AT-Limer</title>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;color:#fff;}
-.container{max-width:600px;margin:0 auto;padding:16px;min-height:100vh;}
+.container{max-width:600px;margin:0 auto;padding:16px;}
 .title{font-size:28px;font-weight:bold;color:#7CFC00;margin-bottom:8px;}
 .status{color:#888;margin-bottom:16px;font-size:14px;}
 .btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;}
@@ -46,13 +45,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 </div>
 </div>
 
-<button class="btn" onclick="toggleLock()">🔒 LOCK / UNLOCK</button>
-<button class="btn" onclick="toggleLight()">💡 LIGHT</button>
+<button class="btn" id="lockBtn" onclick="toggleLock()">🔒 LOCKED</button>
+<button class="btn" id="lightBtn" onclick="toggleLight()">💡 LIGHT OFF</button>
 
-<button class="btn">ECO</button>
-<button class="btn">NORMAL</button>
-<button class="btn">SPORT</button>
-<button class="btn danger">SPEED UNLOCK</button>
+<button class="btn" onclick="setSpeed('eco')">ECO</button>
+<button class="btn" onclick="setSpeed('normal')">NORMAL</button>
+<button class="btn" onclick="setSpeed('sport')">SPORT</button>
+<button class="btn danger" onclick="setSpeed('unlock')">SPEED UNLOCK</button>
 
 <button class="btn danger" onclick="disconnect()">DISCONNECT</button>
 </div>
@@ -64,19 +63,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 
 <script>
 
-/* ================= CONFIG ================= */
-const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-const CHAR_UUID    = "0000ffe1-0000-1000-8000-00805f9b34fb";
-const HEARTBEAT_INTERVAL = 500;
+/* ===== CONFIG ===== */
+const SERVICE_UUID="0000ffe0-0000-1000-8000-00805f9b34fb";
+const CHAR_UUID="0000ffe1-0000-1000-8000-00805f9b34fb";
+const HEARTBEAT_INTERVAL=500;
 
-/* ================= STATE ================= */
+/* ===== STATE ===== */
 let device=null;
 let server=null;
 let characteristic=null;
 let heartbeatTimer=null;
 let receiveBuffer=[];
+let locked=true;
+let lightOn=false;
 
-/* ================= HELPERS ================= */
+/* ===== HELPERS ===== */
 function setStatus(msg){document.getElementById("status").textContent=msg;}
 
 function hexToBytes(hex){
@@ -91,42 +92,35 @@ if(!characteristic)return;
 await characteristic.writeValue(hexToBytes(hex));
 }
 
-/* ================= CRC ================= */
+/* ===== CRC ===== */
 function verifyCRC16(data){
 const withoutCRC=data.slice(0,-2);
 const received=(data[data.length-2]<<8)|data[data.length-1];
 return received===calculateCRC16XMODEM(withoutCRC);
 }
-
 function calculateCRC16XMODEM(data){
-let crc=0x0000;
+let crc=0;
 for(let byte of data){
 crc^=byte<<8;
-for(let i=0;i<8;i++){
+for(let i=0;i<8;i++)
 crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
-}
 }
 return crc&0xFFFF;
 }
 
-/* ================= HEARTBEAT ================= */
+/* ===== HEARTBEAT ===== */
 function startHeartbeat(){
 stopHeartbeat();
 heartbeatTimer=setInterval(()=>{
 sendCommand("4643110100084C494D4542494B45BE8A");
 },HEARTBEAT_INTERVAL);
 }
-
 function stopHeartbeat(){
-if(heartbeatTimer){
-clearInterval(heartbeatTimer);
-heartbeatTimer=null;
-}
+if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
 }
 
-/* ================= NOTIFY PARSER ================= */
+/* ===== NOTIFY ===== */
 function handleNotification(event){
-
 const chunk=new Uint8Array(event.target.value.buffer);
 receiveBuffer=receiveBuffer.concat(Array.from(chunk));
 
@@ -135,29 +129,23 @@ while(receiveBuffer.length>=2){
 const h1=receiveBuffer[0];
 const h2=receiveBuffer[1];
 
-/* ---- ACK FRAME 4651 ---- */
 if(h1===0x46 && h2===0x51){
 receiveBuffer=receiveBuffer.slice(2);
 continue;
 }
 
-/* ---- TELEMETRY FRAME 4658 ---- */
 if(h1===0x46 && h2===0x58){
 
 if(receiveBuffer.length<42)return;
 
 const frame=receiveBuffer.slice(0,42);
 receiveBuffer=receiveBuffer.slice(42);
-
 const bytes=new Uint8Array(frame);
 
-if(!verifyCRC16(bytes)){
-console.log("CRC FAIL");
-continue;
-}
+if(!verifyCRC16(bytes))continue;
 
-const speed=bytes[8];      // 9th byte
-const battery=bytes[19];   // 20th byte
+const speed=bytes[8];
+const battery=bytes[19];
 
 document.getElementById("speedValue").textContent=speed;
 
@@ -167,23 +155,17 @@ battEl.className="value"+(battery<=20?" low":"");
 
 continue;
 }
-
-/* ---- UNKNOWN BYTE ---- */
 receiveBuffer.shift();
 }
 }
 
-/* ================= CONNECT ================= */
-
+/* ===== CONNECT ===== */
 document.getElementById("scanBtn").addEventListener("click",async function(){
-
 try{
-
 device=await navigator.bluetooth.requestDevice({
 filters:[{namePrefix:"AT-09"},{namePrefix:"BT"}],
 optionalServices:[SERVICE_UUID]
 });
-
 document.getElementById("overlay").innerHTML='<div class="spinner"></div>';
 setStatus("Connecting...");
 
@@ -202,21 +184,46 @@ document.getElementById("overlay").style.display="none";
 document.getElementById("dashboard").classList.add("visible");
 
 setStatus("Connected ✔");
-
 }catch(err){
-console.log(err);
 setStatus("Scan cancelled");
 }
 });
 
-/* ================= CONTROLS ================= */
-
+/* ===== CONTROLS ===== */
 function toggleLock(){
+locked=!locked;
+const btn=document.getElementById("lockBtn");
+if(locked){
+btn.textContent="🔒 LOCKED";
 sendCommand("464316610001F0E2AE");
+sendCommand("464316120001F03B07");
+}else{
+btn.textContent="🔓 UNLOCKED";
+sendCommand("464316610001F1F28F");
+sendCommand("464316120001F12B26");
+}
 }
 
 function toggleLight(){
+lightOn=!lightOn;
+const btn=document.getElementById("lightBtn");
+if(lightOn){
+btn.textContent="💡 LIGHT ON";
 sendCommand("464316120001F12B26");
+}else{
+btn.textContent="💡 LIGHT OFF";
+sendCommand("464316120001F03B07");
+}
+}
+
+function setSpeed(mode){
+const cmds={
+eco:"464316110002EE0677",
+normal:"464316110002DC1066",
+sport:"464316110002023AD5",
+unlock:"46431611000200FF3A8B"
+};
+if(cmds[mode])sendCommand(cmds[mode]);
 }
 
 function disconnect(){
@@ -231,7 +238,6 @@ document.getElementById("dashboard").classList.remove("visible");
 document.getElementById("overlay").style.display="flex";
 }
 
-/* ================= CHECK ================= */
 if(!navigator.bluetooth){
 document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
 }
