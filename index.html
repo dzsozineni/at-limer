@@ -2,265 +2,248 @@
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
 <title>AT-Limer</title>
 
 <style>
-body{
-    background:#0F1419;
-    color:white;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI';
-    margin:0;
-    padding:20px;
-}
-.title{
-    font-size:28px;
-    color:#7CFC00;
-    font-weight:bold;
-}
-.status{
-    margin:10px 0;
-    color:#aaa;
-}
-.card{
-    background:#1A1F2E;
-    padding:20px;
-    border-radius:12px;
-    text-align:center;
-    margin-bottom:15px;
-}
-.value{
-    font-size:42px;
-    font-weight:bold;
-    color:#7CFC00;
-}
-.btn{
-    width:100%;
-    padding:14px;
-    margin-top:10px;
-    border:none;
-    border-radius:8px;
-    font-size:16px;
-    background:#007AFF;
-    color:white;
-}
-.btn:active{opacity:0.7;}
-.btn.red{background:#ff3b30;}
-
-.overlay{
-    position:fixed;
-    top:0;left:0;right:0;bottom:0;
-    background:#0F1419;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-}
-.spinner{
-    width:50px;
-    height:50px;
-    border:4px solid #333;
-    border-top:4px solid #7CFC00;
-    border-radius:50%;
-    animation:spin 1s linear infinite;
-    margin-bottom:20px;
-}
-@keyframes spin{
-    from{transform:rotate(0deg);}
-    to{transform:rotate(360deg);}
-}
-.hidden{display:none;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;color:#fff;}
+.container{max-width:600px;margin:0 auto;padding:16px;}
+.title{font-size:28px;font-weight:bold;color:#7CFC00;margin-bottom:8px;}
+.status{color:#888;margin-bottom:16px;font-size:14px;}
+.btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;}
+.btn:active{opacity:.8}
+.btn.danger{background:#ff3b30}
+.dashboard{display:none}
+.dashboard.visible{display:block}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.card{background:rgba(255,255,255,.05);border-radius:12px;padding:20px;text-align:center;}
+.value{font-size:48px;font-weight:bold;color:#7CFC00;}
+.low{color:#ff3b30!important;}
+.overlay{position:fixed;inset:0;background:rgba(15,20,25,.98);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.spinner{width:50px;height:50px;border:4px solid rgba(127,252,0,.2);border-top:4px solid #7CFC00;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
-
-<div id="overlay" class="overlay">
-    <div class="spinner"></div>
-    <div>Connecting...</div>
-</div>
-
+<div class="container">
 <div class="title">AT-Limer</div>
-<div class="status" id="status">Initializing...</div>
+<div class="status" id="status">Disconnected</div>
 
-<div id="dashboard" class="hidden">
-
+<div class="dashboard" id="dashboard">
+<div class="stats">
 <div class="card">
-    <div id="speedValue" class="value">0.0</div>
-    km/h
+<div class="value" id="speedValue">0.0</div>
+<div>km/h</div>
+</div>
+<div class="card">
+<div class="value" id="batteryValue">0</div>
+<div>Battery %</div>
+</div>
 </div>
 
-<div class="card">
-    <div id="batteryValue" class="value">0</div>
-    Battery %
-</div>
-
-<button class="btn" onclick="toggleLock()">🔒 Lock / Unlock</button>
-<button class="btn" onclick="toggleLight()">💡 Light</button>
+<button class="btn" id="lockBtn" onclick="toggleLock()">🔒 LOCKED</button>
+<button class="btn" id="lightBtn" onclick="toggleLight()">💡 LIGHT OFF</button>
 
 <button class="btn" onclick="setSpeed('eco')">ECO</button>
 <button class="btn" onclick="setSpeed('normal')">NORMAL</button>
 <button class="btn" onclick="setSpeed('sport')">SPORT</button>
+<button class="btn danger" onclick="setSpeed('unlock')">SPEED UNLOCK</button>
 
-<button class="btn red" onclick="disconnect()">Disconnect</button>
+<button class="btn danger" onclick="disconnect()">DISCONNECT</button>
+</div>
+</div>
 
+<div class="overlay" id="overlay">
+<button class="btn" id="scanBtn">🔵 SCAN & CONNECT</button>
 </div>
 
 <script>
 
+/* ===== CONFIG ===== */
+const SERVICE_UUID="0000ffe0-0000-1000-8000-00805f9b34fb";
+const CHAR_UUID="0000ffe1-0000-1000-8000-00805f9b34fb";
+const HEARTBEAT_INTERVAL=500;
+
+/* ===== STATE ===== */
 let device=null;
+let server=null;
 let characteristic=null;
 let heartbeatTimer=null;
+let receiveBuffer=[];
 let locked=true;
 let lightOn=false;
 
-const SERVICE_UUID=0xFFE0;
-const CHAR_UUID=0xFFE1;
-
-function setStatus(t){
-    document.getElementById("status").textContent=t;
-}
-
-function showDashboard(){
-    document.getElementById("overlay").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-}
-
-function showOverlay(){
-    document.getElementById("overlay").classList.remove("hidden");
-    document.getElementById("dashboard").classList.add("hidden");
-}
+/* ===== HELPERS ===== */
+function setStatus(msg){document.getElementById("status").textContent=msg;}
 
 function hexToBytes(hex){
-    const bytes=[];
-    for(let c=0;c<hex.length;c+=2){
-        bytes.push(parseInt(hex.substr(c,2),16));
-    }
-    return new Uint8Array(bytes);
+const bytes=[];
+for(let i=0;i<hex.length;i+=2)
+bytes.push(parseInt(hex.substr(i,2),16));
+return new Uint8Array(bytes);
 }
 
+async function sendCommand(hex){
+if(!characteristic)return;
+await characteristic.writeValue(hexToBytes(hex));
+}
+
+/* ===== CRC ===== */
+function verifyCRC16(data){
+const withoutCRC=data.slice(0,-2);
+const received=(data[data.length-2]<<8)|data[data.length-1];
+return received===calculateCRC16XMODEM(withoutCRC);
+}
 function calculateCRC16XMODEM(data){
-    let crc=0x0000;
-    for(let byte of data){
-        crc^=byte<<8;
-        for(let i=0;i<8;i++){
-            if((crc&0x8000)!==0){
-                crc=(crc<<1)^0x1021;
-            }else{
-                crc=crc<<1;
-            }
-        }
-    }
-    return crc&0xFFFF;
+let crc=0;
+for(let byte of data){
+crc^=byte<<8;
+for(let i=0;i<8;i++)
+crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
+}
+return crc&0xFFFF;
 }
 
-function verifyCRC(data){
-    if(data.length<2)return false;
-    const body=data.slice(0,-2);
-    const received=(data[data.length-2]<<8)|data[data.length-1];
-    return received===calculateCRC16XMODEM(body);
-}
-
-async function connect(){
-    try{
-        setStatus("Requesting device...");
-        device=await navigator.bluetooth.requestDevice({
-            acceptAllDevices:true,
-            optionalServices:[SERVICE_UUID]
-        });
-
-        setStatus("Connecting...");
-        const server=await device.gatt.connect();
-        const service=await server.getPrimaryService(SERVICE_UUID);
-        characteristic=await service.getCharacteristic(CHAR_UUID);
-
-        await characteristic.startNotifications();
-        characteristic.addEventListener('characteristicvaluechanged',handleNotify);
-
-        device.addEventListener('gattserverdisconnected',()=>{
-            stopHeartbeat();
-            showOverlay();
-            setStatus("Disconnected");
-        });
-
-        startHeartbeat();
-        showDashboard();
-        setStatus("Connected ✔");
-
-    }catch(e){
-        setStatus("Connection failed");
-        showOverlay();
-        console.log(e);
-    }
-}
-
-async function disconnect(){
-    stopHeartbeat();
-    if(device && device.gatt.connected){
-        device.gatt.disconnect();
-    }
-    showOverlay();
-    setStatus("Disconnected");
-}
-
+/* ===== HEARTBEAT ===== */
 function startHeartbeat(){
-    stopHeartbeat();
-    heartbeatTimer=setInterval(()=>{
-        sendHex('4643110100084C494D4542494B45BE8A');
-    },500);
+stopHeartbeat();
+heartbeatTimer=setInterval(()=>{
+sendCommand("4643110100084C494D4542494B45BE8A");
+},HEARTBEAT_INTERVAL);
 }
-
 function stopHeartbeat(){
-    if(heartbeatTimer){
-        clearInterval(heartbeatTimer);
-        heartbeatTimer=null;
-    }
+if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
 }
 
-async function sendHex(hex){
-    if(!characteristic)return;
-    await characteristic.writeValue(hexToBytes(hex));
+/* ===== NOTIFY ===== */
+function handleNotification(event){
+const chunk=new Uint8Array(event.target.value.buffer);
+receiveBuffer=receiveBuffer.concat(Array.from(chunk));
+
+while(receiveBuffer.length>=2){
+
+const h1=receiveBuffer[0];
+const h2=receiveBuffer[1];
+
+if(h1===0x46 && h2===0x51){
+receiveBuffer=receiveBuffer.slice(2);
+continue;
 }
 
-function handleNotify(event){
-    const bytes=new Uint8Array(event.target.value.buffer);
-    if(bytes.length!==42)return;
-    if(!verifyCRC(bytes))return;
+if(h1===0x46 && h2===0x58){
 
-    const rawSpeed=bytes[8];
-    const speed=(rawSpeed*0.2).toFixed(1);
-    const battery=bytes[19];
+if(receiveBuffer.length<42)return;
 
-    document.getElementById("speedValue").textContent=speed;
-    document.getElementById("batteryValue").textContent=battery;
+const frame=receiveBuffer.slice(0,42);
+receiveBuffer=receiveBuffer.slice(42);
+const bytes=new Uint8Array(frame);
+
+if(!verifyCRC16(bytes))continue;
+
+/* ===== JAVÍTOTT SPEED ===== */
+const rawSpeed = bytes[8];
+const speed = (rawSpeed * 0.2).toFixed(1);
+
+const battery=bytes[19];
+
+document.getElementById("speedValue").textContent=speed;
+
+const battEl=document.getElementById("batteryValue");
+battEl.textContent=battery;
+battEl.className="value"+(battery<=20?" low":"");
+
+continue;
+}
+receiveBuffer.shift();
+}
 }
 
+/* ===== CONNECT ===== */
+document.getElementById("scanBtn").addEventListener("click",async function(){
+try{
+device=await navigator.bluetooth.requestDevice({
+filters:[{namePrefix:"AT-09"},{namePrefix:"BT"}],
+optionalServices:[SERVICE_UUID]
+});
+document.getElementById("overlay").innerHTML='<div class="spinner"></div>';
+setStatus("Connecting...");
+
+server=await device.gatt.connect();
+const service=await server.getPrimaryService(SERVICE_UUID);
+characteristic=await service.getCharacteristic(CHAR_UUID);
+
+await characteristic.startNotifications();
+characteristic.addEventListener("characteristicvaluechanged",handleNotification);
+
+device.addEventListener("gattserverdisconnected",disconnect);
+
+startHeartbeat();
+
+document.getElementById("overlay").style.display="none";
+document.getElementById("dashboard").classList.add("visible");
+
+setStatus("Connected ✔");
+}catch(err){
+setStatus("Scan cancelled");
+}
+});
+
+/* ===== CONTROLS ===== */
 function toggleLock(){
-    locked=!locked;
-    sendHex(locked?'464316610001F0E2AE':'464316610001F1F28F');
+locked=!locked;
+const btn=document.getElementById("lockBtn");
+if(locked){
+btn.textContent="🔒 LOCKED";
+sendCommand("464316610001F0E2AE");
+sendCommand("464316120001F03B07");
+}else{
+btn.textContent="🔓 UNLOCKED";
+sendCommand("464316610001F1F28F");
+sendCommand("464316120001F12B26");
+}
 }
 
 function toggleLight(){
-    lightOn=!lightOn;
-    sendHex(lightOn?'464316120001F12B26':'464316120001F03B07');
+lightOn=!lightOn;
+const btn=document.getElementById("lightBtn");
+if(lightOn){
+btn.textContent="💡 LIGHT ON";
+sendCommand("464316120001F12B26");
+}else{
+btn.textContent="💡 LIGHT OFF";
+sendCommand("464316120001F03B07");
+}
 }
 
 function setSpeed(mode){
-    const commands={
-        eco:'464316110002EE0677',
-        normal:'464316110002DC1066',
-        sport:'464316110002023AD5'
-    };
-    if(commands[mode])sendHex(commands[mode]);
+const cmds={
+eco:"464316110002EE0677",
+normal:"464316110002DC1066",
+sport:"464316110002023AD5",
+unlock:"46431611000200FF3A8B"
+};
+if(cmds[mode])sendCommand(cmds[mode]);
 }
 
-window.addEventListener("DOMContentLoaded",()=>{
-    if(!navigator.bluetooth){
-        setStatus("Web Bluetooth not supported");
-        return;
-    }
-    setTimeout(connect,500); // ✅ AUTO CONNECT VISSZARAKVA
-});
+function disconnect(){
+stopHeartbeat();
+if(device && device.gatt.connected)
+device.gatt.disconnect();
+device=null;
+characteristic=null;
+server=null;
+setStatus("Disconnected");
+document.getElementById("dashboard").classList.remove("visible");
+document.getElementById("overlay").style.display="flex";
+}
+
+if(!navigator.bluetooth){
+document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
+}
 
 </script>
 </body>
