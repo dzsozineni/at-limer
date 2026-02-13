@@ -2,113 +2,83 @@
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AT-Limer">
+<meta name="theme-color" content="#000000">
 <title>AT-Limer</title>
 
+<link rel="manifest" href="manifest.json">
+
 <style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{
-    margin:0;
-    background:#000;
-    color:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+background:#000;color:#fff;overflow-x:hidden;
 }
-.container{
-    max-width:600px;
-    margin:0 auto;
-    padding:16px;
-}
-.title{
-    font-size:28px;
-    font-weight:bold;
-    color:#7CFC00;
-}
-.status{
-    font-size:14px;
-    color:#888;
-    margin-bottom:15px;
-}
+.container{max-width:600px;margin:0 auto;padding:16px;min-height:100vh;display:flex;flex-direction:column;}
+.title{font-size:30px;font-weight:bold;color:#7CFC00;}
+.status{color:#888;margin-bottom:16px;font-size:14px;}
 .btn{
-    width:100%;
-    padding:14px;
-    margin-bottom:12px;
-    border:none;
-    border-radius:8px;
-    font-size:16px;
-    background:#007AFF;
-    color:#fff;
+width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;
+font-size:16px;font-weight:500;cursor:pointer;background:#007AFF;color:#fff;
 }
 .btn:active{opacity:.7}
-.section-title{
-    margin:20px 0 10px;
-    font-size:18px;
-    color:#7CFC00;
-}
+.btn.danger{background:#ff3b30}
 .dashboard{display:none}
 .dashboard.visible{display:block}
+.section-title{font-size:18px;font-weight:bold;color:#7CFC00;margin:24px 0 12px}
 .overlay{
-    position:fixed;
-    inset:0;
-    background:#000;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
+position:fixed;inset:0;background:rgba(0,0,0,.95);
+display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
 .spinner{
-    width:50px;
-    height:50px;
-    border:4px solid #333;
-    border-top:4px solid #7CFC00;
-    border-radius:50%;
-    animation:spin 1s linear infinite;
+width:50px;height:50px;border:4px solid #333;
+border-top:4px solid #7CFC00;border-radius:50%;
+animation:spin 1s linear infinite;margin-bottom:20px;
 }
-@keyframes spin{
-    0%{transform:rotate(0)}
-    100%{transform:rotate(360deg)}
-}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 </style>
 </head>
-
 <body>
 
 <div class="container">
-    <div class="title">AT-Limer</div>
-    <div class="status" id="status">Disconnected</div>
+<div class="title">AT-Limer</div>
+<div class="status" id="status">Disconnected</div>
 
-    <div class="dashboard" id="dashboard">
+<div class="dashboard" id="dashboard">
 
-        <div style="display:flex;gap:20px;margin-bottom:20px;">
-            <div style="flex:1;text-align:center;background:#111;padding:20px;border-radius:12px;">
-                <div id="speedValue" style="font-size:42px;color:#7CFC00;">0</div>
-                <div style="font-size:14px;color:#888;">km/h</div>
-            </div>
-            <div style="flex:1;text-align:center;background:#111;padding:20px;border-radius:12px;">
-                <div id="batteryValue" style="font-size:42px;color:#7CFC00;">0%</div>
-                <div style="font-size:14px;color:#888;">Battery</div>
-            </div>
-        </div>
+<div style="display:flex;gap:20px;margin-bottom:24px;">
+<div style="flex:1;padding:20px;background:rgba(255,255,255,.05);border-radius:12px;text-align:center;">
+<div id="speedValue" style="font-size:48px;font-weight:bold;color:#7CFC00;">0</div>
+<div style="font-size:14px;color:#888;">km/h</div>
+</div>
 
-        <button class="btn" onclick="toggleLock()">🔒 Lock / Unlock</button>
-        <button class="btn" onclick="toggleLight()">💡 Light</button>
+<div style="flex:1;padding:20px;background:rgba(255,255,255,.05);border-radius:12px;text-align:center;">
+<div id="batteryValue" style="font-size:48px;font-weight:bold;color:#7CFC00;">0%</div>
+<div style="font-size:14px;color:#888;">Battery</div>
+</div>
+</div>
 
-        <div class="section-title">Speed Modes</div>
-        <button class="btn" onclick="setSpeed('eco')">ECO</button>
-        <button class="btn" onclick="setSpeed('normal')">NORMAL</button>
-        <button class="btn" onclick="setSpeed('sport')">SPORT</button>
-        <button class="btn" onclick="setSpeed('unlock')">⚠ SPEED UNLOCK</button>
+<button class="btn" id="lockBtn" onclick="toggleLock()">🔒 LOCKED</button>
+<button class="btn" id="lightBtn" onclick="toggleLight()">💡 LIGHT OFF</button>
 
-        <button class="btn" style="background:#ff3b30" onclick="disconnect()">DISCONNECT</button>
-    </div>
+<div class="section-title">Speed Modes</div>
+<button class="btn" onclick="setSpeed('eco')">ECO</button>
+<button class="btn" onclick="setSpeed('normal')">NORMAL</button>
+<button class="btn" onclick="setSpeed('sport')">SPORT</button>
+<button class="btn danger" onclick="setSpeed('unlock')">⚠ SPEED UNLOCK</button>
+
+<button class="btn danger" onclick="disconnect()">DISCONNECT</button>
+</div>
 </div>
 
 <div class="overlay" id="overlay">
-    <button class="btn" id="scanBtn">🔵 SCAN & CONNECT</button>
+<button class="btn" id="scanBtn">🔵 SCAN & CONNECT</button>
 </div>
 
 <script>
-
-const SERVICE_UUID = 0xFFE0;
-const CHAR_UUID = 0xFFE1;
 
 let device=null;
 let characteristic=null;
@@ -116,179 +86,173 @@ let heartbeatTimer=null;
 let locked=true;
 let lightOn=false;
 
+const SERVICE_UUID=0xFFE0;
+const CHAR_UUID=0xFFE1;
+
 function setStatus(msg){
-    document.getElementById("status").innerText=msg;
+document.getElementById("status").textContent=msg;
 }
 
 function hexToBytes(hex){
-    const bytes=[];
-    for(let c=0;c<hex.length;c+=2)
-        bytes.push(parseInt(hex.substr(c,2),16));
-    return new Uint8Array(bytes);
+const bytes=[];
+for(let i=0;i<hex.length;i+=2)
+bytes.push(parseInt(hex.substr(i,2),16));
+return new Uint8Array(bytes);
 }
 
 async function sendHex(hex){
-    if(!characteristic)return;
-    await characteristic.writeValue(hexToBytes(hex));
+if(!characteristic)return;
+await characteristic.writeValue(hexToBytes(hex));
 }
 
-/* ===========================
-   BLUEFY SAFE CONNECT
-=========================== */
-
-document.getElementById("scanBtn").addEventListener("click", async function(){
-
-    try{
-
-        // ⚠️ FIRST LINE = requestDevice (Bluefy rule)
-        device = await navigator.bluetooth.requestDevice({
-            filters:[
-                {namePrefix:"AT-09"},
-                {namePrefix:"BT"}
-            ],
-            optionalServices:[SERVICE_UUID]
-        });
-
-        document.getElementById("overlay").innerHTML='<div class="spinner"></div>';
-        setStatus("Connecting...");
-
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        characteristic = await service.getCharacteristic(CHAR_UUID);
-
-        await characteristic.startNotifications();
-        characteristic.addEventListener("characteristicvaluechanged",handleNotification);
-
-        device.addEventListener("gattserverdisconnected",disconnect);
-
-        startHeartbeat();
-
-        document.getElementById("overlay").style.display="none";
-        document.getElementById("dashboard").classList.add("visible");
-        setStatus("Connected ✔");
-
-    }catch(e){
-        console.log(e);
-        setStatus("Scan cancelled");
-    }
-});
-
-/* ===========================
-   HEARTBEAT
-=========================== */
-
 function startHeartbeat(){
-    stopHeartbeat();
-    heartbeatTimer=setInterval(()=>{
-        sendHex("4643110100084C494D4542494B45BE8A");
-    },500);
+stopHeartbeat();
+heartbeatTimer=setInterval(()=>{
+sendHex("4643110100084C494D4542494B45BE8A");
+},500);
 }
 
 function stopHeartbeat(){
-    if(heartbeatTimer){
-        clearInterval(heartbeatTimer);
-        heartbeatTimer=null;
-    }
+if(heartbeatTimer){
+clearInterval(heartbeatTimer);
+heartbeatTimer=null;
+}
 }
 
-/* ===========================
-   NOTIFICATION HANDLER
-=========================== */
+/* ========= BLUEFY SAFE CONNECT ========= */
+
+document.getElementById("scanBtn").addEventListener("click", async function(){
+
+try{
+
+// ⚠️ FIRST LINE MUST BE requestDevice
+device=await navigator.bluetooth.requestDevice({
+filters:[
+{namePrefix:"AT-09"},
+{namePrefix:"BT"}
+],
+optionalServices:[SERVICE_UUID]
+});
+
+document.getElementById("overlay").innerHTML='<div class="spinner"></div>';
+setStatus("Connecting...");
+
+const server=await device.gatt.connect();
+const service=await server.getPrimaryService(SERVICE_UUID);
+characteristic=await service.getCharacteristic(CHAR_UUID);
+
+await characteristic.startNotifications();
+characteristic.addEventListener("characteristicvaluechanged",handleNotification);
+
+device.addEventListener("gattserverdisconnected",disconnect);
+
+startHeartbeat();
+
+document.getElementById("overlay").style.display="none";
+document.getElementById("dashboard").classList.add("visible");
+
+setStatus("Connected ✔");
+
+}catch(err){
+console.log(err);
+setStatus("Scan cancelled");
+}
+
+});
+
+/* ========= NOTIFY ========= */
 
 function handleNotification(event){
+const bytes=new Uint8Array(event.target.value.buffer);
+if(bytes.length<42)return;
+if(!verifyCRC16(bytes))return;
 
-    const bytes=new Uint8Array(event.target.value.buffer);
-    if(bytes.length<42)return;
+let speed=bytes[8];
+let battery=bytes[19];
 
-    if(!verifyCRC16(bytes)) return;
-
-    let speed=bytes[8];
-    let battery=bytes[19];
-
-    document.getElementById("speedValue").innerText=speed;
-    document.getElementById("batteryValue").innerText=battery+"%";
-    document.getElementById("batteryValue").style.color=
-        battery>20?"#7CFC00":"#ff3b30";
+document.getElementById("speedValue").textContent=speed;
+document.getElementById("batteryValue").textContent=battery+"%";
+document.getElementById("batteryValue").style.color=
+battery>20?"#7CFC00":"#ff3b30";
 }
 
-/* ===========================
-   CRC16 XMODEM
-=========================== */
+/* ========= CRC ========= */
 
 function verifyCRC16(data){
-    const withoutCRC=data.slice(0,data.length-2);
-    const received=(data[data.length-2]<<8)|data[data.length-1];
-    const calculated=calculateCRC16XMODEM(withoutCRC);
-    return received===calculated;
+const withoutCRC=data.slice(0,data.length-2);
+const received=(data[data.length-2]<<8)|data[data.length-1];
+return received===calculateCRC16XMODEM(withoutCRC);
 }
 
 function calculateCRC16XMODEM(data){
-    let crc=0x0000;
-    for(let byte of data){
-        crc^=byte<<8;
-        for(let i=0;i<8;i++){
-            crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
-        }
-    }
-    return crc&0xFFFF;
+let crc=0x0000;
+for(let byte of data){
+crc^=byte<<8;
+for(let i=0;i<8;i++){
+crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
+}
+}
+return crc&0xFFFF;
 }
 
-/* ===========================
-   COMMANDS
-=========================== */
+/* ========= COMMANDS ========= */
 
 function toggleLock(){
-    locked=!locked;
-    if(locked){
-        sendHex("464316610001F0E2AE");
-        sendHex("464316120001F03B07");
-    }else{
-        sendHex("464316610001F1F28F");
-        sendHex("464316120001F12B26");
-    }
+locked=!locked;
+const btn=document.getElementById("lockBtn");
+
+if(locked){
+btn.textContent="🔒 LOCKED";
+sendHex("464316610001F0E2AE");
+sendHex("464316120001F03B07");
+}else{
+btn.textContent="🔓 UNLOCKED";
+sendHex("464316610001F1F28F");
+sendHex("464316120001F12B26");
+}
 }
 
 function toggleLight(){
-    lightOn=!lightOn;
-    if(lightOn)
-        sendHex("464316120001F12B26");
-    else
-        sendHex("464316120001F03B07");
+lightOn=!lightOn;
+const btn=document.getElementById("lightBtn");
+
+if(lightOn){
+btn.textContent="💡 LIGHT ON";
+sendHex("464316120001F12B26");
+}else{
+btn.textContent="💡 LIGHT OFF";
+sendHex("464316120001F03B07");
+}
 }
 
 function setSpeed(mode){
-    if(mode==="eco") sendHex("464316110002EE0677");
-    if(mode==="normal") sendHex("464316110002DC1066");
-    if(mode==="sport") sendHex("464316110002023AD5");
-    if(mode==="unlock") sendHex("46431611000200FF3A8B");
+if(mode==="eco")sendHex("464316110002EE0677");
+if(mode==="normal")sendHex("464316110002DC1066");
+if(mode==="sport")sendHex("464316110002023AD5");
+if(mode==="unlock")sendHex("46431611000200FF3A8B");
 }
 
 function disconnect(){
-    stopHeartbeat();
-    if(device && device.gatt.connected)
-        device.gatt.disconnect();
-
-    device=null;
-    characteristic=null;
-
-    setStatus("Disconnected");
-    document.getElementById("dashboard").classList.remove("visible");
-    document.getElementById("overlay").style.display="flex";
+stopHeartbeat();
+if(device && device.gatt.connected)
+device.gatt.disconnect();
+device=null;
+characteristic=null;
+setStatus("Disconnected");
+document.getElementById("dashboard").classList.remove("visible");
+document.getElementById("overlay").style.display="flex";
 }
 
-/* ===========================
-   SERVICE WORKER
-=========================== */
-
-if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js');
-}
+/* ========= SUPPORT CHECK ========= */
 
 if(!navigator.bluetooth){
-    document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
+document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
+}
+
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
 }
 
 </script>
-
 </body>
 </html>
