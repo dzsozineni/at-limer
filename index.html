@@ -1,820 +1,245 @@
 <!DOCTYPE html>
-
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AT-Limer">
-    <meta name="theme-color" content="#000000">
-
-```
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AT-Limer">
+<meta name="theme-color" content="#000000">
 <title>AT-Limer</title>
-
-<!-- App Icons -->
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-
-<!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
 
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background: #0F1419;
-        color: #fff;
-        overflow-x: hidden;
-        -webkit-user-select: none;
-        user-select: none;
-    }
-
-    .container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 16px;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-    }
-
-    .title {
-        font-size: 30px;
-        font-weight: bold;
-        color: #7CFC00;
-    }
-
-    .subtitle {
-        font-size: 12px;
-        color: #666;
-        margin-top: 4px;
-    }
-
-    .close-btn {
-        font-size: 26px;
-        color: #ff3b30;
-        cursor: pointer;
-        padding: 8px;
-        display: none;
-        transition: transform 0.2s;
-    }
-
-    .close-btn:active {
-        transform: scale(0.95);
-    }
-
-    .close-btn.visible {
-        display: block;
-    }
-
-    .status {
-        color: #888;
-        margin-bottom: 16px;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #7CFC00;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-
-    .btn {
-        width: 100%;
-        padding: 14px;
-        margin-bottom: 12px;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        background: #007AFF;
-        color: #fff;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .btn:active {
-        transform: scale(0.98);
-        opacity: 0.8;
-    }
-
-    .btn.danger {
-        background: #ff3b30;
-    }
-
-    .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .dashboard {
-        display: none;
-    }
-
-    .dashboard.visible {
-        display: block;
-    }
-
-    .section-title {
-        font-size: 18px;
-        font-weight: bold;
-        color: #7CFC00;
-        margin: 24px 0 12px 0;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    /* Speed & Battery Cards */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-
-    .stat-card {
-        background: rgba(255,255,255,0.05);
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        border: 1px solid rgba(127, 252, 0, 0.1);
-    }
-
-    .stat-value {
-        font-size: 48px;
-        font-weight: bold;
-        color: #7CFC00;
-        line-height: 1;
-        margin-bottom: 4px;
-    }
-
-    .stat-label {
-        font-size: 14px;
-        color: #888;
-    }
-
-    .battery-low {
-        color: #ff3b30 !important;
-    }
-
-    /* Connecting Overlay */
-    .connecting-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(15, 20, 25, 0.98);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        backdrop-filter: blur(10px);
-    }
-
-    .connecting-overlay.hidden {
-        display: none;
-    }
-
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(127, 252, 0, 0.2);
-        border-top: 4px solid #7CFC00;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .connecting-text {
-        font-size: 18px;
-        color: #7CFC00;
-        margin-bottom: 8px;
-    }
-
-    .connecting-hint {
-        font-size: 14px;
-        color: #888;
-        text-align: center;
-        max-width: 280px;
-    }
-
-    /* Install Prompt */
-    .install-prompt {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: #1A1F2E;
-        padding: 16px;
-        border-top: 1px solid #333;
-        display: none;
-        z-index: 999;
-    }
-
-    .install-prompt.visible {
-        display: block;
-    }
-
-    .install-text {
-        margin-bottom: 12px;
-        font-size: 14px;
-        color: #ccc;
-    }
-
-    /* Error State */
-    .error-state {
-        text-align: center;
-        padding: 40px 20px;
-    }
-
-    .error-icon {
-        font-size: 64px;
-        margin-bottom: 16px;
-    }
-
-    .error-title {
-        font-size: 20px;
-        color: #ff3b30;
-        margin-bottom: 8px;
-    }
-
-    .error-message {
-        font-size: 14px;
-        color: #888;
-        line-height: 1.5;
-        margin-bottom: 24px;
-    }
-
-    /* Responsive */
-    @media (max-width: 480px) {
-        .title {
-            font-size: 24px;
-        }
-        .stat-value {
-            font-size: 36px;
-        }
-    }
+/* === DESIGN VÁLTOZATLAN === */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;color:#fff;}
+.container{max-width:600px;margin:0 auto;padding:16px;min-height:100vh;display:flex;flex-direction:column;}
+.title{font-size:30px;font-weight:bold;color:#7CFC00;}
+.status{color:#888;margin-bottom:16px;font-size:14px;}
+.btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;}
+.btn:active{opacity:.8}
+.btn.danger{background:#ff3b30}
+.dashboard{display:none}
+.dashboard.visible{display:block}
+.section-title{font-size:18px;font-weight:bold;color:#7CFC00;margin:24px 0 12px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.stat-card{background:rgba(255,255,255,.05);border-radius:12px;padding:20px;text-align:center;}
+.stat-value{font-size:48px;font-weight:bold;color:#7CFC00;}
+.battery-low{color:#ff3b30!important;}
+.overlay{position:fixed;inset:0;background:rgba(15,20,25,.98);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;}
+.spinner{width:50px;height:50px;border:4px solid rgba(127,252,0,.2);border-top:4px solid #7CFC00;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 </style>
-```
-
 </head>
+
 <body>
-    <div class="container">
-        <!-- Connecting Overlay -->
-        <div class="connecting-overlay" id="connectingOverlay">
-            <div class="spinner"></div>
-            <div class="connecting-text">Connecting...</div>
-            <div class="connecting-hint">Select your device from the browser prompt</div>
-        </div>
+<div class="container">
+<div class="title">AT-Limer</div>
+<div class="status" id="status">Disconnected</div>
 
-```
-    <!-- Header -->
-    <div class="header">
-        <div>
-            <div class="title">AT-Limer</div>
-            <div class="subtitle">BLE Controller</div>
-        </div>
-        <div class="close-btn" id="closeBtn" onclick="disconnect()">✕</div>
-    </div>
-
-    <div class="status" id="statusContainer">
-        <span class="status-dot" id="statusDot" style="display:none;"></span>
-        <span id="status">Initializing...</span>
-    </div>
-
-    <!-- Dashboard -->
-    <div class="dashboard" id="dashboard">
-        <!-- Speed & Battery Display -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="speedValue">0</div>
-                <div class="stat-label">km/h</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value" id="batteryValue">0</div>
-                <div class="stat-label">Battery %</div>
-            </div>
-        </div>
-        
-        <!-- Lock/Unlock -->
-        <button class="btn" id="lockBtn" onclick="toggleLock()">
-            <span id="lockIcon">🔒</span>
-            <span id="lockText">LOCKED</span>
-        </button>
-
-        <!-- Light -->
-        <button class="btn" id="lightBtn" onclick="toggleLight()">
-            <span id="lightIcon">💡</span>
-            <span id="lightText">LIGHT OFF</span>
-        </button>
-
-        <!-- Speed Modes -->
-        <div class="section-title">Speed Modes</div>
-        <button class="btn" onclick="setSpeed('eco')">
-            <span>🌱</span>
-            <span>ECO</span>
-        </button>
-        <button class="btn" onclick="setSpeed('normal')">
-            <span>⚡</span>
-            <span>NORMAL</span>
-        </button>
-        <button class="btn" onclick="setSpeed('sport')">
-            <span>🚀</span>
-            <span>SPORT</span>
-        </button>
-        <button class="btn danger" onclick="setSpeed('unlock')">
-            <span>⚠️</span>
-            <span>SPEED UNLOCK</span>
-        </button>
-    </div>
+<div class="dashboard" id="dashboard">
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-value" id="speedValue">0</div>
+<div>km/h</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="batteryValue">0</div>
+<div>Battery %</div>
+</div>
 </div>
 
-<!-- Install Prompt (iOS Safari) -->
-<div class="install-prompt" id="installPrompt">
-    <div class="install-text">
-        📱 Install this app: Safari menu → "Add to Home Screen"
-    </div>
-    <button class="btn" onclick="closeInstallPrompt()">Got it</button>
+<button class="btn" onclick="toggleLock()">🔒 LOCKED</button>
+<button class="btn" onclick="toggleLight()">💡 LIGHT OFF</button>
+
+<div class="section-title">Speed Modes</div>
+<button class="btn" onclick="setSpeed('eco')">ECO</button>
+<button class="btn" onclick="setSpeed('normal')">NORMAL</button>
+<button class="btn" onclick="setSpeed('sport')">SPORT</button>
+<button class="btn danger" onclick="setSpeed('unlock')">⚠ SPEED UNLOCK</button>
+
+<button class="btn danger" onclick="disconnect()">DISCONNECT</button>
+</div>
+</div>
+
+<!-- SCAN OVERLAY -->
+<div class="overlay" id="overlay">
+<button class="btn" id="scanBtn">🔵 SCAN & CONNECT</button>
 </div>
 
 <script>
-    // ========================================
-    // STATE MANAGEMENT
-    // ========================================
-    const state = {
-        device: null,
-        server: null,
-        service: null,
-        characteristic: null,
-        locked: true,
-        lightOn: false,
-        heartbeatTimer: null,
-        reconnectAttempts: 0,
-        maxReconnectAttempts: 3,
-        telemetry: {
-            speed: 0,
-            battery: 0,
-            voltage: 0,
-            current: 0,
-            temperature: 0
-        }
-    };
 
-    const CONFIG = {
-        SERVICE_UUID: 0xFFE0,
-        CHAR_UUID: 0xFFE1,
-        HEARTBEAT_INTERVAL: 500,
-        DEVICE_FILTERS: [
-            { namePrefix: 'AT-09' },
-            { namePrefix: 'BT' }
-        ]
-    };
+/* ========= CONFIG ========= */
+const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
+const CHAR_UUID    = "0000ffe1-0000-1000-8000-00805f9b34fb";
+const HEARTBEAT_INTERVAL = 500;
 
-    // ========================================
-    // UI HELPERS
-    // ========================================
-    function setStatus(msg, isConnected = false) {
-        const statusEl = document.getElementById('status');
-        const dotEl = document.getElementById('statusDot');
-        
-        statusEl.textContent = msg;
-        dotEl.style.display = isConnected ? 'block' : 'none';
-    }
+/* ========= STATE ========= */
+let device=null;
+let server=null;
+let characteristic=null;
+let heartbeatTimer=null;
+let locked=true;
+let lightOn=false;
 
-    function showDashboard() {
-        document.getElementById('connectingOverlay').classList.add('hidden');
-        document.getElementById('dashboard').classList.add('visible');
-        document.getElementById('closeBtn').classList.add('visible');
-    }
+/* ========= HELPERS ========= */
+function setStatus(msg){document.getElementById("status").textContent=msg;}
 
-    function hideDashboard() {
-        document.getElementById('dashboard').classList.remove('visible');
-        document.getElementById('closeBtn').classList.remove('visible');
-    }
+function hexToBytes(hex){
+const bytes=[];
+for(let i=0;i<hex.length;i+=2)
+bytes.push(parseInt(hex.substr(i,2),16));
+return new Uint8Array(bytes);
+}
 
-    function showError(title, message) {
-        const overlay = document.getElementById('connectingOverlay');
-        overlay.innerHTML = `
-            <div class="error-state">
-                <div class="error-icon">⚠️</div>
-                <div class="error-title">${title}</div>
-                <div class="error-message">${message}</div>
-                <button class="btn" onclick="retryConnection()">
-                    🔄 Retry
-                </button>
-            </div>
-        `;
-        overlay.classList.remove('hidden');
-    }
+async function sendCommand(hex){
+if(!characteristic)return;
+await characteristic.writeValue(hexToBytes(hex));
+}
 
-    // ========================================
-    // HEX UTILITIES
-    // ========================================
-    function hexToBytes(hex) {
-        const bytes = [];
-        for (let i = 0; i < hex.length; i += 2) {
-            bytes.push(parseInt(hex.substr(i, 2), 16));
-        }
-        return new Uint8Array(bytes);
-    }
+/* ========= HEARTBEAT ========= */
+function startHeartbeat(){
+stopHeartbeat();
+heartbeatTimer=setInterval(()=>{
+sendCommand("4643110100084C494D4542494B45BE8A");
+},HEARTBEAT_INTERVAL);
+}
 
-    function bytesToHex(bytes) {
-        return Array.from(bytes)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('').toUpperCase();
-    }
+function stopHeartbeat(){
+if(heartbeatTimer){
+clearInterval(heartbeatTimer);
+heartbeatTimer=null;
+}
+}
 
-    // ========================================
-    // CRC VERIFICATION
-    // ========================================
-    function verifyCRC16(data) {
-        if (data.length < 2) return false;
-        
-        const dataWithoutCRC = data.slice(0, -2);
-        const receivedCRC = (data[data.length - 2] << 8) | data[data.length - 1];
-        const calculatedCRC = calculateCRC16XMODEM(dataWithoutCRC);
-        
-        return receivedCRC === calculatedCRC;
-    }
+/* ========= CRC ========= */
+function verifyCRC16(data){
+const withoutCRC=data.slice(0,-2);
+const received=(data[data.length-2]<<8)|data[data.length-1];
+return received===calculateCRC16XMODEM(withoutCRC);
+}
 
-    function calculateCRC16XMODEM(data) {
-        let crc = 0x0000;
-        
-        for (let byte of data) {
-            crc ^= byte << 8;
-            
-            for (let i = 0; i < 8; i++) {
-                if ((crc & 0x8000) !== 0) {
-                    crc = (crc << 1) ^ 0x1021;
-                } else {
-                    crc = crc << 1;
-                }
-            }
-        }
-        
-        return crc & 0xFFFF;
-    }
+function calculateCRC16XMODEM(data){
+let crc=0x0000;
+for(let byte of data){
+crc^=byte<<8;
+for(let i=0;i<8;i++){
+crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
+}
+}
+return crc&0xFFFF;
+}
 
-    // ========================================
-    // BLE COMMUNICATION
-    // ========================================
-    async function sendCommand(hex) {
-        if (!state.characteristic) {
-            console.warn('No characteristic available');
-            return false;
-        }
+/* ========= NOTIFY ========= */
+function handleNotification(event){
+const bytes=new Uint8Array(event.target.value.buffer);
+if(bytes.length!==42)return;
+if(!verifyCRC16(bytes))return;
 
-        try {
-            const data = hexToBytes(hex);
-            await state.characteristic.writeValue(data);
-            console.log('✓ Sent:', hex);
-            return true;
-        } catch (err) {
-            console.error('✗ Write error:', err);
-            return false;
-        }
-    }
+const speed=bytes[8];
+const battery=bytes[19];
 
-    function handleNotification(event) {
-        const value = event.target.value;
-        const bytes = new Uint8Array(value.buffer);
-        
-        console.log('← Received:', bytes.length, 'bytes:', bytesToHex(bytes));
-        
-        // Validate packet length
-        if (bytes.length !== 42) {
-            console.warn('Invalid packet length:', bytes.length);
-            return;
-        }
-        
-        // Verify CRC
-        if (!verifyCRC16(bytes)) {
-            console.warn('CRC check failed');
-            return;
-        }
-        
-        // Parse telemetry
-        const speed = bytes[8];  // Byte 9 (index 8)
-        const battery = bytes[19]; // Byte 20 (index 19)
-        
-        // Update state
-        state.telemetry.speed = speed;
-        state.telemetry.battery = battery;
-        
-        // Update UI
-        updateTelemetryDisplay();
-    }
+document.getElementById("speedValue").textContent=speed;
 
-    function updateTelemetryDisplay() {
-        const { speed, battery } = state.telemetry;
-        
-        // Update speed
-        document.getElementById('speedValue').textContent = speed;
-        
-        // Update battery with color
-        const batteryEl = document.getElementById('batteryValue');
-        batteryEl.textContent = battery;
-        batteryEl.className = 'stat-value' + (battery <= 20 ? ' battery-low' : '');
-        
-        console.log(`📊 Speed: ${speed} km/h | Battery: ${battery}%`);
-    }
+const battEl=document.getElementById("batteryValue");
+battEl.textContent=battery;
+battEl.className="stat-value"+(battery<=20?" battery-low":"");
+}
 
-    // ========================================
-    // HEARTBEAT
-    // ========================================
-    function startHeartbeat() {
-        stopHeartbeat();
-        
-        state.heartbeatTimer = setInterval(() => {
-            sendCommand('4643110100084C494D4542494B45BE8A');
-        }, CONFIG.HEARTBEAT_INTERVAL);
-        
-        console.log('💓 Heartbeat started (500ms)');
-    }
+/* ========= CONNECT (BLUEFY SAFE) ========= */
 
-    function stopHeartbeat() {
-        if (state.heartbeatTimer) {
-            clearInterval(state.heartbeatTimer);
-            state.heartbeatTimer = null;
-            console.log('💔 Heartbeat stopped');
-        }
-    }
+document.getElementById("scanBtn").addEventListener("click", async function(){
 
-    // ========================================
-    // CONNECTION MANAGEMENT
-    // ========================================
-    async function connectToDevice() {
-        try {
-            setStatus('Requesting device...');
-            
-            // Request device
-            state.device = await navigator.bluetooth.requestDevice({
-                filters: CONFIG.DEVICE_FILTERS,
-                optionalServices: [CONFIG.SERVICE_UUID]
-            });
+try{
 
-            console.log('📱 Device selected:', state.device.name);
-            setStatus('Connecting to ' + state.device.name);
+// ⚠️ FIRST LINE
+device=await navigator.bluetooth.requestDevice({
+filters:[
+{namePrefix:"AT-09"},
+{namePrefix:"BT"}
+],
+optionalServices:[SERVICE_UUID]
+});
 
-            // Connect GATT server
-            state.server = await state.device.gatt.connect();
-            console.log('🔗 GATT connected');
-            
-            setStatus('Discovering services...');
+document.getElementById("overlay").innerHTML='<div class="spinner"></div>';
+setStatus("Connecting...");
 
-            // Get service
-            state.service = await state.server.getPrimaryService(CONFIG.SERVICE_UUID);
-            console.log('🔍 Service found');
+server=await device.gatt.connect();
+const service=await server.getPrimaryService(SERVICE_UUID);
+characteristic=await service.getCharacteristic(CHAR_UUID);
 
-            // Get characteristic
-            state.characteristic = await state.service.getCharacteristic(CONFIG.CHAR_UUID);
-            console.log('📝 Characteristic found');
+await characteristic.startNotifications();
+characteristic.addEventListener("characteristicvaluechanged",handleNotification);
 
-            // Subscribe to notifications
-            await state.characteristic.startNotifications();
-            state.characteristic.addEventListener('characteristicvaluechanged', handleNotification);
-            console.log('📬 Notifications enabled');
+device.addEventListener("gattserverdisconnected",disconnect);
 
-            // Setup disconnect handler
-            state.device.addEventListener('gattserverdisconnected', handleDisconnect);
+startHeartbeat();
 
-            // Success!
-            setStatus('Connected ✔', true);
-            showDashboard();
-            startHeartbeat();
-            
-            // Reset reconnect counter
-            state.reconnectAttempts = 0;
+document.getElementById("overlay").style.display="none";
+document.getElementById("dashboard").classList.add("visible");
 
-        } catch (err) {
-            console.error('Connection error:', err);
-            handleConnectionError(err);
-        }
-    }
+setStatus("Connected ✔");
 
-    function handleConnectionError(err) {
-        if (err.name === 'NotFoundError') {
-            setStatus('No device selected');
-            showError('No Device Selected', 'Please select a device to continue.');
-        } else if (err.name === 'NotSupportedError') {
-            showError(
-                'Bluetooth Not Supported',
-                'Please use:<br>• Bluefy browser on iOS<br>• Chrome or Edge on Android'
-            );
-        } else {
-            setStatus('Connection failed');
-            showError('Connection Failed', err.message || 'Unknown error occurred.');
-        }
-    }
+}catch(err){
+console.log(err);
+setStatus("Scan cancelled");
+}
 
-    async function handleDisconnect() {
-        console.log('🔌 Device disconnected');
-        
-        stopHeartbeat();
-        setStatus('Device disconnected');
-        hideDashboard();
-        
-        // Auto-reconnect logic
-        if (state.reconnectAttempts < state.maxReconnectAttempts) {
-            state.reconnectAttempts++;
-            setStatus(`Reconnecting (${state.reconnectAttempts}/${state.maxReconnectAttempts})...`);
-            
-            setTimeout(() => {
-                if (state.device && state.device.gatt) {
-                    state.device.gatt.connect()
-                        .then(() => connectToDevice())
-                        .catch(err => {
-                            console.error('Reconnect failed:', err);
-                        });
-                }
-            }, 2000);
-        } else {
-            showError('Connection Lost', 'Device disconnected. Please reconnect manually.');
-        }
-    }
+});
 
-    async function disconnect() {
-        console.log('👋 Manual disconnect');
-        
-        stopHeartbeat();
-        
-        if (state.characteristic) {
-            try {
-                await state.characteristic.stopNotifications();
-                state.characteristic.removeEventListener('characteristicvaluechanged', handleNotification);
-            } catch (err) {
-                console.error('Error stopping notifications:', err);
-            }
-        }
-        
-        if (state.server && state.server.connected) {
-            state.server.disconnect();
-        }
-        
-        // Reset state
-        state.device = null;
-        state.server = null;
-        state.service = null;
-        state.characteristic = null;
-        state.reconnectAttempts = 0;
-        
-        setStatus('Disconnected');
-        hideDashboard();
-    }
+/* ========= CONTROLS ========= */
 
-    function retryConnection() {
-        state.reconnectAttempts = 0;
-        const overlay = document.getElementById('connectingOverlay');
-        overlay.innerHTML = `
-            <div class="spinner"></div>
-            <div class="connecting-text">Connecting...</div>
-            <div class="connecting-hint">Select your device from the browser prompt</div>
-        `;
-        connectToDevice();
-    }
+function toggleLock(){
+locked=!locked;
+if(locked){
+sendCommand("464316610001F0E2AE");
+sendCommand("464316120001F03B07");
+}else{
+sendCommand("464316610001F1F28F");
+sendCommand("464316120001F12B26");
+}
+}
 
-    // ========================================
-    // CONTROL FUNCTIONS
-    // ========================================
-    function toggleLock() {
-        state.locked = !state.locked;
-        
-        const icon = document.getElementById('lockIcon');
-        const text = document.getElementById('lockText');
-        
-        if (state.locked) {
-            icon.textContent = '🔒';
-            text.textContent = 'LOCKED';
-            sendCommand('464316610001F0E2AE');
-            sendCommand('464316120001F03B07');
-        } else {
-            icon.textContent = '🔓';
-            text.textContent = 'UNLOCKED';
-            sendCommand('464316610001F1F28F');
-            sendCommand('464316120001F12B26');
-        }
-    }
+function toggleLight(){
+lightOn=!lightOn;
+if(lightOn)
+sendCommand("464316120001F12B26");
+else
+sendCommand("464316120001F03B07");
+}
 
-    function toggleLight() {
-        state.lightOn = !state.lightOn;
-        
-        const icon = document.getElementById('lightIcon');
-        const text = document.getElementById('lightText');
-        
-        if (state.lightOn) {
-            icon.textContent = '💡';
-            text.textContent = 'LIGHT ON';
-            sendCommand('464316120001F12B26');
-        } else {
-            icon.textContent = '💡';
-            text.textContent = 'LIGHT OFF';
-            sendCommand('464316120001F03B07');
-        }
-    }
+function setSpeed(mode){
+const cmds={
+eco:"464316110002EE0677",
+normal:"464316110002DC1066",
+sport:"464316110002023AD5",
+unlock:"46431611000200FF3A8B"
+};
+if(cmds[mode])sendCommand(cmds[mode]);
+}
 
-    function setSpeed(mode) {
-        const commands = {
-            'eco': '464316110002EE0677',
-            'normal': '464316110002DC1066',
-            'sport': '464316110002023AD5',
-            'unlock': '46431611000200FF3A8B'
-        };
-        
-        if (commands[mode]) {
-            sendCommand(commands[mode]);
-            console.log(`🏎️ Speed mode: ${mode.toUpperCase()}`);
-        }
-    }
+function disconnect(){
+stopHeartbeat();
+if(device && device.gatt.connected)
+device.gatt.disconnect();
+device=null;
+characteristic=null;
+server=null;
+setStatus("Disconnected");
+document.getElementById("dashboard").classList.remove("visible");
+document.getElementById("overlay").style.display="flex";
+}
 
-    // ========================================
-    // INSTALL PROMPT
-    // ========================================
-    function showInstallPrompt() {
-        const isStandalone = window.navigator.standalone || 
-                            window.matchMedia('(display-mode: standalone)').matches;
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        
-        if (!isStandalone && isIOS && !localStorage.getItem('installPromptClosed')) {
-            document.getElementById('installPrompt').classList.add('visible');
-        }
-    }
+/* ========= CHECK ========= */
+if(!navigator.bluetooth){
+document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
+}
 
-    function closeInstallPrompt() {
-        document.getElementById('installPrompt').classList.remove('visible');
-        localStorage.setItem('installPromptClosed', 'true');
-    }
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
+}
 
-    // ========================================
-    // INITIALIZATION
-    // ========================================
-    window.addEventListener('DOMContentLoaded', () => {
-        console.log('🚀 AT-Limer initialized');
-        
-        // Check Bluetooth support
-        if (!navigator.bluetooth) {
-            showError(
-                'Web Bluetooth Not Supported',
-                'Please use:<br>• <strong>Bluefy</strong> browser on iOS<br>• <strong>Chrome</strong> or <strong>Edge</strong> on Android'
-            );
-            return;
-        }
-        
-        // Auto-start connection
-        setTimeout(() => {
-            connectToDevice();
-        }, 500);
-        
-        // Show install prompt
-        setTimeout(showInstallPrompt, 3000);
-    });
-
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(() => console.log('✓ Service Worker registered'))
-            .catch(err => console.error('✗ SW registration failed:', err));
-    }
 </script>
-```
-
 </body>
 </html>
