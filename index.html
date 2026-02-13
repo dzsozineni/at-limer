@@ -46,13 +46,44 @@ body{
 }
 .btn:active{opacity:0.7;}
 .btn.red{background:#ff3b30;}
+
+.overlay{
+    position:fixed;
+    top:0;left:0;right:0;bottom:0;
+    background:#0F1419;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+.spinner{
+    width:50px;
+    height:50px;
+    border:4px solid #333;
+    border-top:4px solid #7CFC00;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    margin-bottom:20px;
+}
+@keyframes spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+}
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
+<div id="overlay" class="overlay">
+    <div class="spinner"></div>
+    <div>Connecting...</div>
+</div>
+
 <div class="title">AT-Limer</div>
-<div class="status" id="status">Not connected</div>
+<div class="status" id="status">Initializing...</div>
+
+<div id="dashboard" class="hidden">
 
 <div class="card">
     <div id="speedValue" class="value">0.0</div>
@@ -64,15 +95,16 @@ body{
     Battery %
 </div>
 
-<button class="btn" onclick="connect()">🔗 Connect</button>
-<button class="btn red" onclick="disconnect()">❌ Disconnect</button>
-
 <button class="btn" onclick="toggleLock()">🔒 Lock / Unlock</button>
 <button class="btn" onclick="toggleLight()">💡 Light</button>
 
 <button class="btn" onclick="setSpeed('eco')">ECO</button>
 <button class="btn" onclick="setSpeed('normal')">NORMAL</button>
 <button class="btn" onclick="setSpeed('sport')">SPORT</button>
+
+<button class="btn red" onclick="disconnect()">Disconnect</button>
+
+</div>
 
 <script>
 
@@ -82,11 +114,21 @@ let heartbeatTimer=null;
 let locked=true;
 let lightOn=false;
 
-const SERVICE_UUID = 0xFFE0;
-const CHAR_UUID = 0xFFE1;
+const SERVICE_UUID=0xFFE0;
+const CHAR_UUID=0xFFE1;
 
 function setStatus(t){
     document.getElementById("status").textContent=t;
+}
+
+function showDashboard(){
+    document.getElementById("overlay").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+}
+
+function showOverlay(){
+    document.getElementById("overlay").classList.remove("hidden");
+    document.getElementById("dashboard").classList.add("hidden");
 }
 
 function hexToBytes(hex){
@@ -100,33 +142,34 @@ function hexToBytes(hex){
 function calculateCRC16XMODEM(data){
     let crc=0x0000;
     for(let byte of data){
-        crc ^= byte<<8;
+        crc^=byte<<8;
         for(let i=0;i<8;i++){
-            if((crc & 0x8000)!==0){
+            if((crc&0x8000)!==0){
                 crc=(crc<<1)^0x1021;
             }else{
                 crc=crc<<1;
             }
         }
     }
-    return crc & 0xFFFF;
+    return crc&0xFFFF;
 }
 
 function verifyCRC(data){
     if(data.length<2)return false;
     const body=data.slice(0,-2);
     const received=(data[data.length-2]<<8)|data[data.length-1];
-    const calc=calculateCRC16XMODEM(body);
-    return received===calc;
+    return received===calculateCRC16XMODEM(body);
 }
 
 async function connect(){
     try{
+        setStatus("Requesting device...");
         device=await navigator.bluetooth.requestDevice({
             acceptAllDevices:true,
             optionalServices:[SERVICE_UUID]
         });
 
+        setStatus("Connecting...");
         const server=await device.gatt.connect();
         const service=await server.getPrimaryService(SERVICE_UUID);
         characteristic=await service.getCharacteristic(CHAR_UUID);
@@ -136,14 +179,17 @@ async function connect(){
 
         device.addEventListener('gattserverdisconnected',()=>{
             stopHeartbeat();
+            showOverlay();
             setStatus("Disconnected");
         });
 
         startHeartbeat();
+        showDashboard();
         setStatus("Connected ✔");
 
     }catch(e){
         setStatus("Connection failed");
+        showOverlay();
         console.log(e);
     }
 }
@@ -153,6 +199,7 @@ async function disconnect(){
     if(device && device.gatt.connected){
         device.gatt.disconnect();
     }
+    showOverlay();
     setStatus("Disconnected");
 }
 
@@ -177,13 +224,11 @@ async function sendHex(hex){
 
 function handleNotify(event){
     const bytes=new Uint8Array(event.target.value.buffer);
-
     if(bytes.length!==42)return;
     if(!verifyCRC(bytes))return;
 
     const rawSpeed=bytes[8];
-    const speed=(rawSpeed*0.2).toFixed(1);   // ✅ JAVÍTOTT KÉPLET
-
+    const speed=(rawSpeed*0.2).toFixed(1);
     const battery=bytes[19];
 
     document.getElementById("speedValue").textContent=speed;
@@ -192,20 +237,12 @@ function handleNotify(event){
 
 function toggleLock(){
     locked=!locked;
-    if(locked){
-        sendHex('464316610001F0E2AE');
-    }else{
-        sendHex('464316610001F1F28F');
-    }
+    sendHex(locked?'464316610001F0E2AE':'464316610001F1F28F');
 }
 
 function toggleLight(){
     lightOn=!lightOn;
-    if(lightOn){
-        sendHex('464316120001F12B26');
-    }else{
-        sendHex('464316120001F03B07');
-    }
+    sendHex(lightOn?'464316120001F12B26':'464316120001F03B07');
 }
 
 function setSpeed(mode){
@@ -214,10 +251,16 @@ function setSpeed(mode){
         normal:'464316110002DC1066',
         sport:'464316110002023AD5'
     };
-    if(commands[mode]){
-        sendHex(commands[mode]);
-    }
+    if(commands[mode])sendHex(commands[mode]);
 }
+
+window.addEventListener("DOMContentLoaded",()=>{
+    if(!navigator.bluetooth){
+        setStatus("Web Bluetooth not supported");
+        return;
+    }
+    setTimeout(connect,500); // ✅ AUTO CONNECT VISSZARAKVA
+});
 
 </script>
 </body>
