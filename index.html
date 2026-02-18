@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#7CFC00">
 <title>AT-Limer</title>
 
 <style>
@@ -14,7 +14,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 .title{font-size:28px;font-weight:bold;color:#7CFC00;margin-bottom:8px;}
 .status{color:#888;margin-bottom:16px;font-size:14px;}
 .closeBtn{position:absolute;top:16px;right:16px;font-size:22px;color:#ff3b30;display:none;cursor:pointer;}
-.btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;}
+.btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;cursor:pointer;}
 .btn:active{opacity:.8}
 .btn.danger{background:#ff3b30}
 .dashboard{display:none}
@@ -24,9 +24,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 .value{font-size:48px;font-weight:bold;color:#7CFC00;}
 .low{color:#ff3b30!important;}
 .sectionTitle{margin:20px 0 10px 0;font-size:18px;color:#7CFC00;font-weight:bold;}
-.overlay{position:fixed;inset:0;background:rgba(15,20,25,.98);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.overlay{position:fixed;inset:0;background:rgba(15,20,25,.98);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;}
 .spinner{width:50px;height:50px;border:4px solid rgba(127,252,0,.2);border-top:4px solid #7CFC00;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;}
 @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.not-supported{text-align:center;padding:40px 20px;max-width:400px;}
+.not-supported .icon{font-size:64px;margin-bottom:20px;}
+.not-supported h2{font-size:20px;margin-bottom:16px;color:#fff;}
+.not-supported p{color:#888;line-height:1.6;margin-bottom:12px;}
+.not-supported strong{color:#7CFC00;}
+.not-supported a{color:#007AFF;text-decoration:none;}
 </style>
 </head>
 
@@ -79,9 +85,7 @@ let heartbeatTimer=null;
 let receiveBuffer=[];
 let locked=true;
 let lightOn=false;
-
-/* MAX SPEED belső érték */
-let MAX_SPEED_RAW=4316; // kb 25km/h default
+let MAX_SPEED_RAW=4316;
 
 function setStatus(msg){
 document.getElementById("status").textContent=msg;
@@ -111,7 +115,6 @@ if(!characteristic)return;
 await characteristic.writeValue(hexToBytes(hex));
 }
 
-/* CRC */
 function verifyCRC16(data){
 const withoutCRC=data.slice(0,-2);
 const received=(data[data.length-2]<<8)|data[data.length-1];
@@ -128,7 +131,6 @@ crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
 return crc&0xFFFF;
 }
 
-/* HEARTBEAT */
 function startHeartbeat(){
 stopHeartbeat();
 heartbeatTimer=setInterval(()=>{
@@ -143,17 +145,12 @@ heartbeatTimer=null;
 }
 }
 
-/* NOTIFY */
 function handleNotification(event){
-
 const chunk=new Uint8Array(event.target.value.buffer);
 receiveBuffer=receiveBuffer.concat(Array.from(chunk));
 
 while(receiveBuffer.length>=2){
-
-/* TELEMETRY FRAME */
 if(receiveBuffer[0]===0x46 && receiveBuffer[1]===0x58){
-
 if(receiveBuffer.length<42)return;
 
 const frame=receiveBuffer.slice(0,42);
@@ -174,15 +171,12 @@ battEl.className="value"+(battery<=20?" low":"");
 
 continue;
 }
-
 receiveBuffer.shift();
 }
 }
 
-/* CONNECT */
 async function connect(){
 try{
-
 device=await navigator.bluetooth.requestDevice({
 filters:[{namePrefix:"AT-09"},{namePrefix:"BT"}],
 optionalServices:[SERVICE_UUID]
@@ -214,7 +208,6 @@ resetUI();
 
 document.getElementById("scanBtn").addEventListener("click",connect);
 
-/* CONTROLS */
 function toggleLock(){
 locked=!locked;
 const btn=document.getElementById("lockBtn");
@@ -251,24 +244,30 @@ unlock:"46431611000200FF3A8B"
 if(cmds[mode])sendCommand(cmds[mode]);
 }
 
-/* DISCONNECT */
 function disconnect(){
-
 stopHeartbeat();
-
 if(device && device.gatt.connected)
 device.gatt.disconnect();
-
 device=null;
 characteristic=null;
 server=null;
 receiveBuffer=[];
-
 resetUI();
 }
 
+// Check browser support
 if(!navigator.bluetooth){
-document.body.innerHTML="<h2 style='color:red;padding:20px'>Use Bluefy browser on iOS.</h2>";
+document.body.innerHTML=`
+<div class="overlay" style="display:flex;">
+  <div class="not-supported">
+    <div class="icon">⚠️</div>
+    <h2>Web Bluetooth Not Supported</h2>
+    <p>This browser doesn't support the Web Bluetooth API.</p>
+    <p style="margin-top:16px"><strong>iOS:</strong> Use the <a href="https://apps.apple.com/app/bluefy/id1492822055" target="_blank">Bluefy browser</a></p>
+    <p><strong>Android:</strong> Use Chrome, Edge or Opera</p>
+  </div>
+</div>
+`;
 }
 
 </script>
