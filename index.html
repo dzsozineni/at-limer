@@ -16,6 +16,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 .closeBtn{position:absolute;top:16px;right:16px;font-size:22px;color:#ff3b30;display:none;cursor:pointer;}
 .btn{width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:8px;font-size:16px;background:#007AFF;color:#fff;cursor:pointer;}
 .btn:active{opacity:.8}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
 .btn.danger{background:#ff3b30}
 .dashboard{display:none}
 .dashboard.visible{display:block}
@@ -46,7 +47,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 
 <div class="stats">
 <div class="card">
-<div class="value" id="speedValue">0.0</div>
+<div class="value" id="speedValue">0</div>
 <div>km/h</div>
 </div>
 <div class="card">
@@ -60,9 +61,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F1419;
 
 <div class="sectionTitle">Speed Modes</div>
 
-<button class="btn" onclick="setSpeed('eco')">ECO</button>
-<button class="btn" onclick="setSpeed('normal')">NORMAL</button>
-<button class="btn" onclick="setSpeed('sport')">SPORT</button>
+<button class="btn" onclick="setSpeed('eco')">ECO (10 km/h)</button>
+<button class="btn" onclick="setSpeed('normal')">NORMAL (26 km/h)</button>
+<button class="btn" onclick="setSpeed('sport')">SPORT (34 km/h)</button>
 <button class="btn danger" onclick="setSpeed('unlock')">SPEED UNLOCK</button>
 
 </div>
@@ -85,7 +86,8 @@ let heartbeatTimer=null;
 let receiveBuffer=[];
 let locked=true;
 let lightOn=false;
-let MAX_SPEED_RAW=4316;
+let commandIsSending=false;
+let maxSpeed=35; // Default 35 km/h
 
 function setStatus(msg){
 document.getElementById("status").textContent=msg;
@@ -97,7 +99,7 @@ document.getElementById("overlay").style.display="flex";
 document.getElementById("overlay").innerHTML='<button class="btn" id="scanBtn">🔵 SCAN & CONNECT</button>';
 document.getElementById("closeBtn").style.display="none";
 setStatus("Disconnected");
-document.getElementById("speedValue").textContent="0.0";
+document.getElementById("speedValue").textContent="0";
 document.getElementById("batteryValue").textContent="0";
 document.getElementById("batteryValue").className="value";
 document.getElementById("scanBtn").addEventListener("click",connect);
@@ -113,6 +115,11 @@ return new Uint8Array(bytes);
 async function sendCommand(hex){
 if(!characteristic)return;
 await characteristic.writeValue(hexToBytes(hex));
+console.log('✓ Sent:',hex);
+}
+
+function delay(ms){
+return new Promise(resolve=>setTimeout(resolve,ms));
 }
 
 function verifyCRC16(data){
@@ -159,8 +166,10 @@ receiveBuffer=receiveBuffer.slice(42);
 const bytes=new Uint8Array(frame);
 if(!verifyCRC16(bytes))continue;
 
-const rawSpeed=bytes[8];
-const speed=(rawSpeed * MAX_SPEED_RAW / 172).toFixed(1);
+// SEBESSÉG SZÁMÍTÁS (max speed alapján)
+const rawSpeed = bytes[8];
+const speed = Math.round((rawSpeed / 172.0) * maxSpeed);
+
 const battery=bytes[19];
 
 document.getElementById("speedValue").textContent=speed;
@@ -169,8 +178,11 @@ const battEl=document.getElementById("batteryValue");
 battEl.textContent=battery;
 battEl.className="value"+(battery<=20?" low":"");
 
+console.log(`Speed: ${speed} km/h (raw: ${rawSpeed}) | Battery: ${battery}%`);
+
 continue;
 }
+
 receiveBuffer.shift();
 }
 }
@@ -208,40 +220,75 @@ resetUI();
 
 document.getElementById("scanBtn").addEventListener("click",connect);
 
-function toggleLock(){
-locked=!locked;
+async function toggleLock(){
+if(commandIsSending)return;
+commandIsSending=true;
+
 const btn=document.getElementById("lockBtn");
+btn.disabled=true;
+
+locked=!locked;
+
 if(locked){
+btn.textContent="🔒 LOCKING...";
+await sendCommand("464316610001F0E2AE");
+await delay(100);
+await sendCommand("464316120001F03B07");
+await delay(100);
 btn.textContent="🔒 LOCKED";
-sendCommand("464316610001F0E2AE");
-sendCommand("464316120001F03B07");
+console.log('🔒 Locked');
 }else{
+btn.textContent="🔓 UNLOCKING...";
+await sendCommand("464316610001F1F28F");
+await delay(100);
+await sendCommand("464316120001F12B26");
+await delay(100);
 btn.textContent="🔓 UNLOCKED";
-sendCommand("464316610001F1F28F");
-sendCommand("464316120001F12B26");
-}
+console.log('🔓 Unlocked');
 }
 
-function toggleLight(){
-lightOn=!lightOn;
-const btn=document.getElementById("lightBtn");
-if(lightOn){
-btn.textContent="💡 LIGHT ON";
-sendCommand("464316120001F12B26");
-}else{
-btn.textContent="💡 LIGHT OFF";
-sendCommand("464316120001F03B07");
+btn.disabled=false;
+commandIsSending=false;
 }
+
+async function toggleLight(){
+if(commandIsSending)return;
+commandIsSending=true;
+
+const btn=document.getElementById("lightBtn");
+btn.disabled=true;
+
+lightOn=!lightOn;
+
+if(lightOn){
+btn.textContent="💡 TURNING ON...";
+await sendCommand("464316120001F12B26");
+await delay(100);
+btn.textContent="💡 LIGHT ON";
+console.log('💡 Light ON');
+}else{
+btn.textContent="💡 TURNING OFF...";
+await sendCommand("464316120001F03B07");
+await delay(100);
+btn.textContent="💡 LIGHT OFF";
+console.log('💡 Light OFF');
+}
+
+btn.disabled=false;
+commandIsSending=false;
 }
 
 function setSpeed(mode){
 const cmds={
-eco:"464316110002EE0677",
-normal:"464316110002DC1066",
-sport:"464316110002023AD5",
+eco:"464316110002EE0677",      // 10.4 km/h
+normal:"464316110002DC1066",    // 26.4 km/h
+sport:"464316110002023AD5",     // 33.7 km/h
 unlock:"46431611000200FF3A8B"
 };
-if(cmds[mode])sendCommand(cmds[mode]);
+if(cmds[mode]){
+sendCommand(cmds[mode]);
+console.log(`🏎️ Speed mode: ${mode.toUpperCase()}`);
+}
 }
 
 function disconnect(){
@@ -252,10 +299,11 @@ device=null;
 characteristic=null;
 server=null;
 receiveBuffer=[];
+commandIsSending=false;
+maxSpeed=35;
 resetUI();
 }
 
-// Check browser support
 if(!navigator.bluetooth){
 document.body.innerHTML=`
 <div class="overlay" style="display:flex;">
