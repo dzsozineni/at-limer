@@ -87,7 +87,7 @@ let receiveBuffer=[];
 let locked=true;
 let lightOn=false;
 let commandIsSending=false;
-let maxSpeed=25; // Default 25 km/h
+let maxSpeed=26; // Default 25 km/h
 
 function setStatus(msg){
 document.getElementById("status").textContent=msg;
@@ -231,18 +231,12 @@ try{
 locked=!locked;
 
 if(locked){
-btn.textContent="🔒 LOCKING...";
 await sendCommand("464316610001F0E2AE");
-await delay(300);
-await sendCommand("464316120001F03B07");
 await delay(100);
 btn.textContent="🔒 LOCKED";
 console.log('🔒 Locked');
 }else{
-btn.textContent="🔓 UNLOCKING...";
 await sendCommand("464316610001F1F28F");
-await delay(300);
-await sendCommand("464316120001F12B26");
 await delay(100);
 btn.textContent="🔓 UNLOCKED";
 console.log('🔓 Unlocked');
