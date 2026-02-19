@@ -227,6 +227,7 @@ commandIsSending=true;
 const btn=document.getElementById("lockBtn");
 btn.disabled=true;
 
+try{
 locked=!locked;
 
 if(locked){
@@ -246,9 +247,13 @@ await delay(100);
 btn.textContent="🔓 UNLOCKED";
 console.log('🔓 Unlocked');
 }
-
+}catch(err){
+console.error('Lock error:',err);
+btn.textContent=locked?"🔒 LOCKED":"🔓 UNLOCKED";
+}finally{
 btn.disabled=false;
 commandIsSending=false;
+}
 }
 
 async function toggleLight(){
@@ -258,6 +263,7 @@ commandIsSending=true;
 const btn=document.getElementById("lightBtn");
 btn.disabled=true;
 
+try{
 lightOn=!lightOn;
 
 if(lightOn){
@@ -273,9 +279,13 @@ await delay(100);
 btn.textContent="💡 LIGHT OFF";
 console.log('💡 Light OFF');
 }
-
+}catch(err){
+console.error('Light error:',err);
+btn.textContent=lightOn?"💡 LIGHT ON":"💡 LIGHT OFF";
+}finally{
 btn.disabled=false;
 commandIsSending=false;
+}
 }
 
 function setSpeed(mode){
